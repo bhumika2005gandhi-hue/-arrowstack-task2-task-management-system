@@ -1,0 +1,69 @@
+// Prisma schema — Arrowstack Task Management System
+// Ref: AS-2026-7346 · Bhumika Gandhi
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      String   @default("user")
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks       Task[]       @relation("TaskAssignee")
+  createdTasks Task[]      @relation("TaskCreator")
+  comments    Comment[]
+  activity   Activity[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("todo") // todo | in_progress | review | done
+  priority    String    @default("medium") // low | medium | high | urgent
+  dueDate     DateTime?
+  assigneeId  String?
+  createdById String
+  tags        String    @default("[]") // JSON array of strings
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  assignee  User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy User      @relation("TaskCreator", fields: [createdById], references: [id])
+  comments  Comment[]
+  activity  Activity[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  type      String   // created | updated | status_changed | assigned | commented
+  taskId    String
+  userId    String
+  metadata  String   @default("{}") // JSON
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
